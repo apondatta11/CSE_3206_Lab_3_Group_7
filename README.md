@@ -235,66 +235,12 @@ int main() {
 
 ![Iterator Pattern UML](Iterator/iterator_UML.png)
 
-```mermaid
-classDiagram
-    class Client {
-        +main()
-    }
-    class Iterator {
-        <<interface>>
-        +hasNext() : bool
-        +next() : Post
-    }
-    class FeedIterator {
-        -posts: vector~Post~&
-        -int position
-        +FeedIterator(posts: vector~Post~&)
-        +hasNext() : bool
-        +next() : Post
-    }
-    class Feed {
-        -posts: vector~Post~
-        +addPost(p: Post) : void
-        +createIterator() : FeedIterator
-    }
-    class Post {
-        +string content
-        +Post(c: string)
-    }
-
-    FeedIterator ..|> Iterator : implements
-    Feed ..> FeedIterator : creates
-    Client --> Feed : adds posts
-    Client --> FeedIterator : traverses
-    Feed "1" o-- "*" Post : stores
-    FeedIterator "1" --> "*" Post : returns
-```
 
 ### Mediator Pattern — Class Diagram
 
 ![Mediator Pattern UML](Mediator/mediator_UML.png)
 
-```mermaid
-classDiagram
-    class AirTrafficController {
-        <<Mediator>>
-        -bool runwayBusy
-        +requestRunway(planeName: string) : void
-        +runwayFree(planeName: string) : void
-    }
-    class Airplane {
-        <<Colleague>>
-        -string planeName
-        -AirTrafficController* controller
-        +Airplane(name: string, c: AirTrafficController*)
-        +requestRunway() : void
-        +leaveRunway() : void
-    }
 
-    AirTrafficController "1" <-- "0..*" Airplane : controls
-```
-
----
 
 ## Advantages
 
