@@ -1,20 +1,3 @@
-# Rajshahi University of Engineering and Technology
-## Department of Computer Science & Engineering
-
-### Software Engineering Sessional (CSE 3206)
-**Experiment No:** 03  
-**Date of Submission:** 18 August 2026  
-
----
-
-### Meta Information
-
-| **Submitted By** | **Submitted To** |
-| :--- | :--- |
-| **Name:** Apon Datta (2203019),<br>Emon Islam (2203020),<br>Sanjida Tabassum (2203021)<br>**Group:** 7<br>**Section:** A<br>**Series:** 22 | **Name:** Emrana Kabir Hashi<br>**Designation:** Assistant Professor<br>**Department:** CSE<br>**Institution:** RUET |
-
----
-
 # Iterator Pattern
 
 | Attribute | Details |
