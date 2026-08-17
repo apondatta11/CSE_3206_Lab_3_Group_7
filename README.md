@@ -329,7 +329,7 @@ classDiagram
 
 ---
 
-## 3.3 Limitations
+## Limitations
 
 ### Iterator Pattern
 - Adds extra classes and indirection for what could be a simple loop over a small collection.
@@ -341,7 +341,7 @@ classDiagram
 
 ---
 
-## 3.4 Industry Examples
+## Industry Examples
 
 ### Iterator Pattern
 - C++ STL container iterators (`std::vector::iterator`, `std::list::iterator`).
