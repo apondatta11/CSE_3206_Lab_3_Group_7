@@ -30,52 +30,49 @@ If every part of the application accessed the internal vector directly using raw
 The Iterator Pattern solves this by giving the Feed collection a `createIterator()` method that returns a `FeedIterator` object. Each client gets its own independent iterator with `hasNext()` and `next()` operations, so multiple clients can scroll through the same feed at their own pace without knowing how posts are actually stored internally.
 
 ## Participants
-- **Iterator** : Declares the interface for traversal, typically `hasNext()` and `next()`.
-- **ConcreteIterator (FeedIterator)** : Implements the Iterator interface and keeps track of the current traversal position.
-- **Aggregate (Feed)** : Declares an interface for creating an Iterator object, e.g. `createIterator()`.
-- **ConcreteAggregate** : The concrete collection (the Feed class itself) that stores Post objects and returns a `FeedIterator`.
-- **Client** : Uses the Iterator interface to traverse the collection without knowing its internal structure.
+- **Iterator** : Declares the common interface for traversing the collection with `hasNext()` to check for remaining elements and `next()` to retrieve the next element.
+- **ConcreteIterator (FeedIterator)** : Implements the Iterator interface. It maintains a reference to the collection of posts and keeps track of the current traversal position using the `position` variable.
+- **Aggregate (Feed)** : Provides an interface for creating an Iterator through the `createIterator()` method.
+- **ConcreteAggregate** : The concrete collection that stores the Post objects in a `vector<Post>`. It provides methods for adding posts and creating a `FeedIterator`.
+- **Client** : Creates the Feed, adds posts, obtains an iterator through `createIterator()`, and uses `hasNext()` and `next()` to traverse the collection without directly accessing its internal vector.
 
 ## Example Code
-The example below models a Social Media Feed. The Feed class (Aggregate) stores Post objects and is responsible only for creating a `FeedIterator`; it never exposes its internal `std::vector` directly. The `FeedIterator` (ConcreteIterator) implements `hasNext()` and `next()` to walk through the posts one at a time. So the client can scroll the feed without any knowledge of how posts are stored.
+The example below models a Social Media Feed. The Feed class acts as both the Aggregate and ConcreteAggregate, storing Post objects internally in a private `vector<Post>`. It provides the `createIterator()` method to create a `FeedIterator` without exposing the internal collection to the client.
+
+The `FeedIterator` acts as the ConcreteIterator and implements the `hasNext()` and `next()` methods. It maintains the current traversal position and provides the posts one at a time.
+
+The `main()` function acts as the Client. It obtains an iterator from the Feed and uses the iterator to traverse the posts, without needing to know that the Feed internally uses a vector.
 
 ```cpp
 #include <iostream>
 #include <vector>
-#include <string>
 using namespace std;
 
 class Post {
 public:
-    string author;
     string content;
-    Post(string a, string c) : author(a), content(c) {}
+    Post(string c) {
+        content = c;
+    }
 };
 
-// ----- Iterator Interface -----
 class Iterator {
 public:
     virtual bool hasNext() = 0;
     virtual Post next() = 0;
-    virtual ~Iterator() {}
 };
-
-class Feed;
 
 class FeedIterator : public Iterator {
 private:
-    vector<Post>* posts;
-    int position;
+    vector<Post>& posts;
+    int position = 0;
 public:
-    FeedIterator(vector<Post>* p) {
-        posts = p;
-        position = 0;
-    }
+    FeedIterator(vector<Post>& p) : posts(p) {}
     bool hasNext() override {
-        return position < (int)posts->size();
+        return position < posts.size();
     }
     Post next() override {
-        return posts->at(position++);
+        return posts[position++];
     }
 };
 
@@ -83,38 +80,35 @@ class Feed {
 private:
     vector<Post> posts;
 public:
-    void addPost(const Post& p) {
+    void addPost(Post p) {
         posts.push_back(p);
     }
-    Iterator* createIterator() {
-        return new FeedIterator(&posts);
+    FeedIterator createIterator() {
+        return FeedIterator(posts);
     }
 };
 
 int main() {
     Feed feed;
-    feed.addPost(Post("Apon", "Just finished the Lab 3 report!"));
-    feed.addPost(Post("Emon", "Studying Mediator pattern today."));
-    feed.addPost(Post("Sanjida", "UML diagrams ready for the demo."));
+    feed.addPost(Post("Hello from Apon"));
+    feed.addPost(Post("Hello from Emon"));
+    feed.addPost(Post("Hello from Sanjida"));
 
-    Iterator* it = feed.createIterator();
-    while (it->hasNext()) {
-        Post post = it->next();
-        cout << post.author << ": " << post.content << "\n";
+    FeedIterator iterator = feed.createIterator();
+    while (iterator.hasNext()) {
+        cout << iterator.next().content << endl;
     }
-
-    delete it;
     return 0;
 }
 ```
 
 ## Code Explanation
-- **Post** is the element type stored inside the collection. It plays no structural role in the pattern itself, it is simply the data being iterated over.
-- **Iterator** declares the common traversal interface: `hasNext()` to check for remaining elements and `next()` to retrieve the current element and advance.
-- **FeedIterator (ConcreteIterator)** stores a pointer to the collection and the current position, implementing the actual traversal logic.
-- **Feed (Aggregate/ConcreteAggregate)** owns the `vector<Post>` and exposes only `createIterator()`. It never lets client code touch the vector directly.
-- **main() (Client)** calls `feed.createIterator()` and loops using `hasNext()`/`next()`, completely unaware of how posts are stored internally.
-- Because traversal is decoupled from storage, the Feed could switch to a linked list or a database cursor later and only `FeedIterator` would need to change. The client code in `main()` would remain untouched.
+- **Post** is the element type stored inside the collection. It contains the post content and represents the data that will be iterated over. It plays no structural role in the pattern itself, it is simply the data being iterated over.
+- **Iterator** declares the common traversal interface: `hasNext()` checks whether more elements are available, while `next()` retrieves the current element and moves the iterator to the next position.
+- **FeedIterator (ConcreteIterator)** implements the Iterator interface. It keeps a reference to the Feed's collection of posts and maintains a position variable to keep track of the current element during traversal.
+- **Feed (Aggregate/ConcreteAggregate)** owns the `vector<Post>` that stores all the posts. It provides `addPost()` to add posts and `createIterator()` to create and return a `FeedIterator`. The internal vector remains private, so the client cannot access it directly.
+- **main() (Client)** creates the Feed, adds posts, and requests an iterator using `feed.createIterator()`. It then uses `hasNext()` and `next()` to traverse the posts without knowing how the posts are internally stored.
+- As the traversal logic is separated from the Feed's storage, the Feed's internal collection can potentially be changed without requiring changes to the client. The client continues to use the same `hasNext()` and `next()` operations, while the concrete iterator can handle the new storage mechanism.
 
 ---
 
@@ -129,17 +123,17 @@ int main() {
 The Mediator Pattern defines an object that encapsulates how a set of other objects interact. Instead of objects referring to and communicating with each other directly which creates a tangled web of dependencies. They communicate only through the Mediator. This promotes loose coupling by keeping objects from referring to one another explicitly, and lets their interaction be varied independently.
 
 ## When to Use
-- A set of objects communicate in well-defined but complex ways, creating many interdependencies.
-- Reusing an object is difficult because it refers to and communicates with many other objects.
-- You want to centralize control logic instead of scattering it across many classes.
-- Behavior distributed between several classes should be customizable without a lot of subclassing.
+- Many objects communicate with each other in complex ways.
+- Reusing objects is difficult because they depend on many other objects.
+- Control logic should be kept in one central place.
+- The behavior should be easy to change without creating many subclasses.
 
 ## Real-World Applications
-- Air traffic control tower coordinating aircraft take-offs and landings.
-- Chat room applications where messages are routed through a central server.
-- GUI dialog boxes where widgets communicate through a dialog controller.
-- Smart-home hubs coordinating multiple connected devices.
-- Air-traffic-style ride-sharing dispatch systems coordinating drivers and riders.
+- **Air Traffic**: Tower controls aircraft take-off and landing.
+- **Chat Room**: Server manages messages between users.
+- **GUI**: Dialog controller manages different widgets.
+- **Smart Home**: Hub controls connected devices.
+- **Ride Sharing**: System connects drivers and riders.
 
 ## Problem Scenario
 Imagine building an Air Traffic Control System at an airport. Multiple aircraft need to request permission to land or take off. If every aircraft communicated directly with every other aircraft to check runway availability, the number of connections would grow rapidly as more planes are added & each Aircraft object would need a reference to every other Aircraft and any change to one plane's communication logic could ripple through all the others.
@@ -147,98 +141,89 @@ Imagine building an Air Traffic Control System at an airport. Multiple aircraft 
 This tightly-coupled, many-to-many communication is fragile, hard to test & hard to extend with new aircraft or new rules. The Mediator Pattern solves this by introducing a `ControlTower` object. Every Aircraft communicates only with the `ControlTower`, requesting to land or take off and the tower decides whether the runway is free and coordinates the response. Aircraft never talk to each other directly.
 
 ## Participants
-- **Mediator** : Declares an interface for communicating with Colleague objects, e.g. `notify()`.
-- **ConcreteMediator (ControlTower)** : Implements cooperative behavior by coordinating Colleague objects and knows/maintains its colleagues.
-- **Colleague** : Declares the interface each communicating object must implement, holding a reference to its Mediator.
-- **ConcreteColleague (Aircraft)** : Each colleague communicates with its Mediator whenever it would otherwise have communicated with another colleague directly.
+- **Mediator** : `AirTrafficController` controls communication between the airplanes using `requestRunway()` and `runwayFree()`.
+- **ConcreteMediator** : `AirTrafficController` checks whether the runway is busy and decides which airplane can use it.
+- **Colleague** : `Airplane` represents an aircraft and communicates with the `AirTrafficController`.
+- **ConcreteColleague** : `Airplane` requests runway permission and informs the controller when it leaves the runway.
 
 ## Example Code
-The example below models an Air Traffic Control Tower. Each Aircraft (ConcreteColleague) never talks to another aircraft directly. It only calls methods on its `ControlTower` (ConcreteMediator) which decides whether the runway is free and coordinates the response, keeping the aircraft loosely coupled from one another.
+The example below models an Air Traffic Control System. Each Airplane communicates only with the `AirTrafficController` and never directly with another airplane. The `AirTrafficController` checks whether the runway is busy and decides whether an airplane can use it. This keeps the airplanes independent from each other and makes the system simple and easy to manage.
 
 ```cpp
 #include <iostream>
-#include <string>
 using namespace std;
 
-class Aircraft; // forward declaration
-
-// ----- Mediator Interface -----
-class ControlTowerMediator {
-public:
-    virtual void requestLanding(Aircraft* plane) = 0;
-    virtual void requestTakeoff(Aircraft* plane) = 0;
-    virtual void notifyRunwayFree() = 0;
-    virtual ~ControlTowerMediator() {}
-};
-
-// ----- Colleague Interface -----
-class Aircraft {
-protected:
-    ControlTowerMediator* tower;
-    string callSign;
-public:
-    Aircraft(ControlTowerMediator* t, string sign) {
-        tower = t;
-        callSign = sign;
-    }
-    string getCallSign() { return callSign; }
-    void requestLand() {
-        tower->requestLanding(this);
-    }
-    void requestTakeoff() {
-        tower->requestTakeoff(this);
-    }
-};
-
-// ----- Concrete Mediator -----
-class ControlTower : public ControlTowerMediator {
+// Mediator
+class AirTrafficController {
 private:
-    bool runwayBusy;
+    bool runwayBusy = false;
+
 public:
-    ControlTower() { runwayBusy = false; }
-    void requestLanding(Aircraft* plane) override {
+    void requestRunway(string planeName) {
         if (!runwayBusy) {
             runwayBusy = true;
-            cout << plane->getCallSign() << ": cleared to land.\n";
-        } else {
-            cout << plane->getCallSign() << ": hold, runway busy.\n";
+            cout << planeName << " can use the runway." << endl;
+        }
+        else {
+            cout << planeName << " must wait." << endl;
         }
     }
-    void requestTakeoff(Aircraft* plane) override {
-        if (!runwayBusy) {
-            runwayBusy = true;
-            cout << plane->getCallSign() << ": cleared for takeoff.\n";
-        } else {
-            cout << plane->getCallSign() << ": hold, runway busy.\n";
-        }
-    }
-    void notifyRunwayFree() override {
+
+    void runwayFree(string planeName) {
         runwayBusy = false;
-        cout << "Control Tower: runway is now free.\n";
+        cout << planeName << " has left the runway." << endl;
+    }
+};
+
+// Airplane
+class Airplane {
+private:
+    string planeName;
+    AirTrafficController* controller;
+
+public:
+    Airplane(string name, AirTrafficController* c) {
+        planeName = name;
+        controller = c;
+    }
+
+    void requestRunway() {
+        controller->requestRunway(planeName);
+    }
+
+    void leaveRunway() {
+        controller->runwayFree(planeName);
     }
 };
 
 int main() {
-    ControlTower tower;
-    Aircraft flightA(&tower, "BG-147");
-    Aircraft flightB(&tower, "BG-202");
 
-    flightA.requestLand(); // runway free -> cleared
-    flightB.requestLand(); // runway busy -> hold
-    tower.notifyRunwayFree();
-    flightB.requestLand(); // runway free again -> cleared
+    AirTrafficController controller;
+
+    Airplane planeA("Plane A", &controller);
+    Airplane planeB("Plane B", &controller);
+
+    planeA.requestRunway();
+    planeB.requestRunway();
+
+    planeA.leaveRunway();
+
+    planeB.requestRunway();
 
     return 0;
 }
 ```
 
 ## Code Explanation
-- **ControlTowerMediator** declares the Mediator interface: `requestLanding()`, `requestTakeoff()`, and `notifyRunwayFree()`.
-- **Aircraft (Colleague)** holds only a pointer to its Mediator; it never references other Aircraft objects directly.
-- **ControlTower (ConcreteMediator)** implements the coordination logic tracking whether the runway is busy and deciding how each request is handled.
-- When `flightA` and `flightB` call `requestLand()`, the call is routed entirely through `tower`. The two Aircraft objects never interact with one another.
-- **main() (Client)** wires the aircraft to the shared tower and triggers requests demonstrating how new aircraft can be added without changing existing Aircraft or ControlTower code.
-- This centralization means all coordination logic lives in one place, so adding new rules (e.g., priority landings) only requires modifying `ControlTower`.
+- **AirTrafficController**: Acts as the Mediator and manages communication between the airplanes.
+- **runwayBusy**: Stores the current status of the runway—busy or free.
+- **requestRunway()**: Checks the runway. If it is free, the airplane gets permission; otherwise, it must wait.
+- **runwayFree()**: Makes the runway free when an airplane leaves it.
+- **Airplane Class**: Represents an aircraft and stores its name and controller.
+- **requestRunway()**: Sends a request from the airplane to the controller.
+- **leaveRunway()**: Informs the controller that the airplane has left the runway.
+- **main()**: Creates the controller and two airplanes, then shows how they use the runway.
+- **Main Idea**: Airplanes do not communicate directly. The `AirTrafficController` manages all communication and runway access.
 
 ---
 
@@ -248,67 +233,65 @@ int main() {
 
 ### Iterator Pattern — Class Diagram
 
+![Iterator Pattern UML](Iterator/iterator_UML.png)
+
 ```mermaid
 classDiagram
+    class Client {
+        +main()
+    }
     class Iterator {
         <<interface>>
         +hasNext() : bool
         +next() : Post
     }
-
     class FeedIterator {
-        -posts: vector~Post~*
-        -position: int
+        -posts: vector~Post~&
+        -int position
+        +FeedIterator(posts: vector~Post~&)
         +hasNext() : bool
         +next() : Post
     }
-
     class Feed {
         -posts: vector~Post~
-        +addPost(p: Post)
-        +createIterator() : Iterator
+        +addPost(p: Post) : void
+        +createIterator() : FeedIterator
     }
-
     class Post {
-        +author: string
-        +content: string
+        +string content
+        +Post(c: string)
     }
 
     FeedIterator ..|> Iterator : implements
     Feed ..> FeedIterator : creates
-    Feed ..> Iterator : returns
-    Feed "1" o-- "*" Post : contains
-    FeedIterator "1" --> "*" Post : accesses
+    Client --> Feed : adds posts
+    Client --> FeedIterator : traverses
+    Feed "1" o-- "*" Post : stores
+    FeedIterator "1" --> "*" Post : returns
 ```
 
 ### Mediator Pattern — Class Diagram
 
+![Mediator Pattern UML](Mediator/mediator_UML.png)
+
 ```mermaid
 classDiagram
-    class ControlTowerMediator {
-        <<interface>>
-        +requestLanding(plane: Aircraft)
-        +requestTakeoff(plane: Aircraft)
-        +notifyRunwayFree()
+    class AirTrafficController {
+        <<Mediator>>
+        -bool runwayBusy
+        +requestRunway(planeName: string) : void
+        +runwayFree(planeName: string) : void
+    }
+    class Airplane {
+        <<Colleague>>
+        -string planeName
+        -AirTrafficController* controller
+        +Airplane(name: string, c: AirTrafficController*)
+        +requestRunway() : void
+        +leaveRunway() : void
     }
 
-    class ControlTower {
-        -runwayBusy: bool
-        +requestLanding(plane: Aircraft)
-        +requestTakeoff(plane: Aircraft)
-        +notifyRunwayFree()
-    }
-
-    class Aircraft {
-        -tower: ControlTowerMediator*
-        -callSign: string
-        +requestLand()
-        +requestTakeoff()
-    }
-
-    ControlTower ..|> ControlTowerMediator : implements
-    Aircraft --> ControlTowerMediator : uses tower
-    ControlTower "1" --> "*" Aircraft : coordinates
+    AirTrafficController "1" <-- "0..*" Airplane : controls
 ```
 
 ---
