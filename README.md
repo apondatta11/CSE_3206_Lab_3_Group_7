@@ -233,7 +233,7 @@ int main() {
 
 ### Iterator Pattern — Class Diagram
 
-![Iterator Pattern UML](Iterator/Iterator_UML.png)
+![Iterator Pattern UML](Iterator/iterator_UML.png)
 
 
 ### Mediator Pattern — Class Diagram
